@@ -1,4 +1,5 @@
 #pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  HTServo)
+#pragma config(Hubs,  S2, HTMotor,  none,  none,  none)
 #pragma config(Motor,  mtr_S1_C1_1,     motorLeftFront,   tmotorNormal, openLoop, reversed)
 #pragma config(Motor,  mtr_S1_C1_2,     motorLeftBack,   tmotorNormal, openLoop, reversed)
 #pragma config(Motor,  mtr_S1_C2_1,     ramp,   tmotorNormal, openLoop)
@@ -7,9 +8,9 @@
 #pragma config(Motor,  mtr_S1_C3_2,     motorRightBack,   tmotorNormal, openLoop)
 #pragma config(Servo,  srvo_S1_C4_1,    clawLeft,               tServoStandard)
 #pragma config(Servo,  srvo_S1_C4_2,    clawRight,               tServoStandard)
-#pragma config(Servo,  srvo_S1_C4_3,    button,               tServoStandard)
-#pragma config(Servo,  srvo_S1_C4_4,    button2,               tServoStandard)
-#pragma config(Sensor, S3,     LEGOLS,              sensorLightInactive)
+#pragma config(Motor,  mtr_S2_C1_1,     LED,   tmotorNormal, openLoop)
+#pragma config(Motor,  mtr_S2_C1_2,     LED2,   tmotorNormal, openLoop)
+#pragma config(Sensor, S3,     HTSPB,                sensorI2CCustom9V)
 #pragma config(Sensor, S4,     HTSMUX,              sensorI2CCustom)
 
 
@@ -17,6 +18,7 @@
 #include "/hitechnic-sensormux.h"
 #include "/lego-light.h"
 #include "/lego-touch.h"
+#include "/hitechnic-superpro.h"
 #include "/hitechnic-force.h"
 
 #define threshold 25
@@ -24,18 +26,18 @@
 const tMUXSensor HTFORCE1 = msensor_S4_3;
 const tMUXSensor HTFORCE2 = msensor_S4_4;
 
-bool rampLocked,speedToggleOne,speedToggleTwo,touched,weighted,on,prevOn;
+bool rampLocked,speedToggleOne,speedToggleTwo,touched,weighted;
 float speedContOne,speedContTwo;
 int clawVal,force1,force2;
 
 void init(){
+	//Initiate SuperPro pinout
+  //HTSPBsetupIO(HTSPB, 0xFF); //Set all digital i/o as outputs
 
 	//Initiate Variables
-	rampLocked=speedToggleOne=speedToggleTwo=touched=weighted=on=prevOn=false;
+	rampLocked=speedToggleOne=speedToggleTwo=touched=weighted=false;
 	speedContOne=speedContTwo=1;
 	clawVal=7;
-
-	LSsetActive(LEGOLS);
 
 	//Initiate Motors
 	motor[motorLeftFront]=0;
@@ -48,8 +50,6 @@ void init(){
 	//Initiate Servos
 	servo[clawLeft]=clawVal;
 	servo[clawRight]=215-clawVal;
-	servo[button]=140;
-	servo[button2]=120;
 
 }
 
@@ -151,9 +151,9 @@ void debug()
 {
 	nxtDisplayCenteredTextLine(0,"Force1:%i",force1);
 	nxtDisplayCenteredTextLine(1,"Force2:%i",force2);
-	nxtDisplayCenteredTextLine(2,"Light:%i",SensorValue[LEGOLS]);
-	nxtDisplayCenteredTextLine(3,"Time:%i",time1[T1]);
-	nxtDisplayCenteredTextLine(4,"ON?%i",on);
+	nxtDisplayCenteredTextLine(2,"");
+	nxtDisplayCenteredTextLine(3,"");
+	nxtDisplayCenteredTextLine(4,"");
 	nxtDisplayCenteredTextLine(5,"");
 	nxtDisplayCenteredTextLine(6,"");
 	nxtDisplayCenteredTextLine(7,"");
@@ -162,8 +162,6 @@ void debug()
 task main()
 {
 	init();
-
-	waitForStart();
 
 	ClearTimer(T1);
 	while(true){
@@ -175,31 +173,24 @@ task main()
 	  	force1+=1000;
 	 	if(force2<1000)
 	 		force2+=1000;
-	 	if(force1>1450&&force2>1300||force2>1500&&force1>1400){
-			if(time1[T1]>350){
-				ClearTimer(T1);
-				on=!on;
-			}
-	 		if(on!=prevOn){
-	 			if(on)
-					servo[button2]=0;
-				else
-					servo[button2]=120;
-			}
-	 	}
-	 	else{
-			servo[button2]=120;
-	 	}
-		if(force1>1455){
-			servo[button]=150;
+	 	if(force1>1475&&force2>1300)
+	 		motor[LED2]=100;
+	 	else
+	 		motor[LED2]=0;
+	  if(force1>1475){
+		 	motor[LED]=100;
 		}
-		else if(force2>1460){
-			servo[button]=150;
+	 	else if(force2>1460){
+	 		motor[LED]=100;
 		}
-		else{
-			servo[button]=140;
-	 	}
-	 	prevOn=on;
+	 	else
+	 		motor[LED]=0;
+
+	  //SuperPro LED control for weighted
+	  /*if(weighted)
+      HTSPBwriteIO(HTSPB, 0x01);
+    else
+      HTSPBwriteIO(HTSPB, 0x00);*/
 
     //Joystick Control
 		joystickControllerOne();
