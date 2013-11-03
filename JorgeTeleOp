@@ -127,13 +127,9 @@ void joystickControllerTwo() //Driver 2 controls cube intake and cube lifter
 }
 
 task main(){
-
 	init();
-
 	waitForStart();
-
 	ClearTimer(T1);
-
 	while(true){
 		if(bDisconnected){ //Stop Robot if disconnected
 			allStop();
