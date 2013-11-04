@@ -12,13 +12,14 @@
 #include "JoystickDriver.c"
 
 //Variables
-bool intakeOn,joy2Btn_1_Pressed;
+bool intakeOn,joy2Btn_1_Pressed,down;
 int cubeLiftCount;
 float cubeDropperPos,cubeLifterPos;
 
 void init(){ //Initiate Robot(servo positions, intake bool)
+	nNoMessageCounterLimit=500;
 	cubeLiftCount=0;
-	intakeOn = joy2Btn_1_Pressed = false;
+	intakeOn = joy2Btn_1_Pressed = down = false;
 	cubeDropperPos=50;
 	cubeLifterPos=128;
 	servo[cubeDropper] = cubeDropperPos;
@@ -69,15 +70,16 @@ void joystickControllerOne() //Driver 1 Controls drive train and hang mechanism
 
 void joystickControllerTwo() //Driver 2 controls cube intake and cube lifter
 {
-	if(cubeLiftCount<20) //Reset cubeDropper when at bottom
-		cubeDropperPos=50;
 	if(cubeLiftCount<0) //Don't let the count go negative
 		cubeLiftCount=0;
-
-	if(joy2Btn(4)) //Cube dropper Up
+	
+	if(joy2Btn(4)){ //Cube dropper Up
 		cubeDropperPos=50;
+		down=false;
+	}
 	else if(joy2Btn(3)){ //Cube dropper Down
 		cubeDropperPos=145;
+		down=true;
 		ClearTimer(T2);
 	}
 
@@ -86,13 +88,18 @@ void joystickControllerTwo() //Driver 2 controls cube intake and cube lifter
 		cubeLifterPos=0;
 		cubeLiftCount--;
 	}
-	else if(joy2Btn(8)&&cubeLiftCount<2330){ //Cube lifter Up
+	else if(joy2Btn(8)&&cubeLiftCount<2400){ //Cube lifter Up
 		cubeLifterPos=255;
 		cubeLiftCount++;
 	}
-	else if(cubeLiftCount>0&&cubeDropperPos==145&&time1[T2]>1500){ //Autonomously reset cubeLifter
+	else if(cubeLiftCount>0&&(down||cubeDropperPos==145)&&time1[T2]>1250){ //Autonomously reset cubeLifter
+		if(cubeLiftCount<1000) //Reset cubeDropper when at bottom
+			cubeDropperPos=50;
 		cubeLifterPos=0;
 		cubeLiftCount--;
+		down=true;
+		if(cubeLiftCount<200)
+			down=false;
 	}
 	else //Stop
 		cubeLifterPos=128;
@@ -127,9 +134,13 @@ void joystickControllerTwo() //Driver 2 controls cube intake and cube lifter
 }
 
 task main(){
+
 	init();
+
 	waitForStart();
+
 	ClearTimer(T1);
+
 	while(true){
 		if(bDisconnected){ //Stop Robot if disconnected
 			allStop();
